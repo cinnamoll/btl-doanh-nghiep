@@ -1,4 +1,4 @@
-FROM java:8
+FROM openjdk:8-jdk-alpine
 ENV port = 2222
 EXPOSE 2222:2222
 ADD /target/service-discovery-1.0.jar eureka.jar

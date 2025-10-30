@@ -1,4 +1,4 @@
-FROM java:8
+FROM openjdk:8-jdk-alpine
 ENV port = 8000
 EXPOSE 8000:8000
 ADD /target/monitoring-1.0.jar monitoring.jar

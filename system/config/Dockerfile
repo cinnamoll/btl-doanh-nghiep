@@ -1,4 +1,4 @@
-FROM java:8
+FROM openjdk:8-jdk-alpine
 ENV port = 8111
 EXPOSE 8111:8111
 ADD /target/config-1.0.jar config.jar

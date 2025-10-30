@@ -116,6 +116,3 @@ services:
     links:
       - config-server
       - discovery-server
-
-
-
