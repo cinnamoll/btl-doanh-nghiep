@@ -7,19 +7,19 @@ services:
     env_file:
       - common.env
     ports:
-      - 5433:5432
+      - "5433:5432"
 
   config-server:
     build: system/config
     ports:
-      - 8111:8111
+      - "8111:8111"
 
   migration:
     build: storage/migration
     env_file:
       - common.env
     ports:
-      - 9999:9999
+      - "9999:9999"
     depends_on:
       - postgresdb
     links:
@@ -31,7 +31,7 @@ services:
     env_file:
       - common.env
     ports:
-      - 2222:2222
+      - "2222:2222"
     depends_on:
       - config-server
     links:
@@ -45,8 +45,8 @@ services:
     environment:
       EXTRA_JAR_ARGS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8187
     ports:
-      - 8087:8087
-      - 8187:8187 #debug port
+      - "8087:8087"
+      - "8187:8187" #debug port
     depends_on:
       - postgresdb
       - discovery-server
@@ -63,8 +63,8 @@ services:
     environment:
       EXTRA_JAR_ARGS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8180
     ports:
-      - 8080:8080
-      - 8180:8180 #debug port
+      - "8080:8080"
+      - "8180:8180" #debug port
     depends_on:
       - authentication-server
     links:
@@ -81,8 +81,8 @@ services:
     environment:
       EXTRA_JAR_ARGS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8181
     ports:
-      - 8081:8081
-      - 8181:8181
+      - "8081:8081"
+      - "8181:8181"
     depends_on:
       - authentication-server
     links:
@@ -97,7 +97,7 @@ services:
     env_file:
       - common.env
     ports:
-      - 8765:8765
+      - "8765:8765"
     depends_on:
       - product-service
       - order-service
@@ -110,7 +110,7 @@ services:
     env_file:
       - common.env
     ports:
-      - 8000:8000
+      - "8000:8000"
     depends_on:
       - discovery-server
     links:

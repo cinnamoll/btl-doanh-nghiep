@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ecommerce-production
+
+bases:
+  - ../../base
+
+nameSuffix: -prod
+
+commonLabels:
+  environment: production
+
+replicas:
+  - name: product-service
+    count: 3
+  - name: order-service
+    count: 3
+  - name: gateway
+    count: 3
+  - name: authentication
+    count: 2
+
+images:
+  - name: your-dockerhub-username/ecommerce-config
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-discovery-server
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-gateway
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-authentication
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-product
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-order
+    newTag: prod-latest
+  - name: your-dockerhub-username/ecommerce-monitoring
+    newTag: prod-latest

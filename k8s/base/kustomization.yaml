@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ecommerce
+
+resources:
+  - namespace.yaml
+  - postgres/deployment.yaml
+  - postgres/service.yaml
+  - postgres/pvc.yaml
+  - config-server/deployment.yaml
+  - discovery-server/deployment.yaml
+  - gateway/deployment.yaml
+  - authentication/deployment.yaml
+  - product/deployment.yaml
+  - order/deployment.yaml
+  - monitoring/deployment.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: ecommerce-microservices
+  app.kubernetes.io/managed-by: argocd
+
+images:
+  - name: your-dockerhub-username/ecommerce-config
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-discovery-server
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-gateway
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-authentication
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-product
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-order
+    newTag: latest
+  - name: your-dockerhub-username/ecommerce-monitoring
+    newTag: latest

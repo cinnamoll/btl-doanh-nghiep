@@ -1,0 +1,207 @@
+name: CI/CD with ArgoCD
+
+on:
+  push:
+    branches: [ temp, main ]
+  pull_request:
+    branches: [ temp, main ]
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # Job 1: Build and Test
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests
+
+      - name: Run Tests
+        run: mvn test
+        continue-on-error: true
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: '**/target/surefire-reports/*.xml'
+
+  # Job 2: Build and Push Docker Images
+  docker-build-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: github.event_name == 'push'
+
+    strategy:
+      matrix:
+        include:
+          - service: config
+            path: system/config
+            jar: config-1.0.jar
+          - service: discovery-server
+            path: system/discovery-server
+            jar: discovery-server-1.0.jar
+          - service: gateway
+            path: system/gateway
+            jar: gateway-1.0.jar
+          - service: authentication
+            path: system/authentication
+            jar: authentication-1.0.jar
+          - service: product
+            path: services/product
+            jar: product-1.0.jar
+          - service: order
+            path: services/order
+            jar: order-1.0.jar
+          - service: monitoring
+            path: system/monitoring
+            jar: monitoring-1.0.jar
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build specific module
+        run: mvn clean package -pl ${{ matrix.path }} -am -DskipTests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "env=production" >> $GITHUB_OUTPUT
+          else
+            echo "tag=staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "env=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push ${{ matrix.service }}
+        working-directory: ${{ matrix.path }}
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.tag }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.env }}-latest \
+            .
+          docker push ${{ secrets.DOCKER_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.env }}-latest
+
+  # Job 3: Update Kubernetes Manifests
+  update-manifests:
+    name: Update K8s Manifests for ArgoCD
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "tag=staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Update image tags in kustomization
+        run: |
+          cd k8s/overlays/${{ steps.env.outputs.environment }}
+          
+          kustomize edit set image \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-config=${{ secrets.DOCKER_USERNAME }}/ecommerce-config:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-discovery-server=${{ secrets.DOCKER_USERNAME }}/ecommerce-discovery-server:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-gateway=${{ secrets.DOCKER_USERNAME }}/ecommerce-gateway:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-authentication=${{ secrets.DOCKER_USERNAME }}/ecommerce-authentication:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-product=${{ secrets.DOCKER_USERNAME }}/ecommerce-product:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-order=${{ secrets.DOCKER_USERNAME }}/ecommerce-order:${{ steps.env.outputs.tag }} \
+            ${{ secrets.DOCKER_USERNAME }}/ecommerce-monitoring=${{ secrets.DOCKER_USERNAME }}/ecommerce-monitoring:${{ steps.env.outputs.tag }}
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add k8s/overlays/${{ steps.env.outputs.environment }}/kustomization.yaml
+          git commit -m "Update ${{ steps.env.outputs.environment }} image tags to ${{ steps.env.outputs.tag }}" || exit 0
+          git push
+
+  # Job 4: Notify ArgoCD to Sync (Optional - ArgoCD auto-sync có thể làm việc này)
+  trigger-argocd-sync:
+    name: Trigger ArgoCD Sync
+    runs-on: ubuntu-latest
+    needs: update-manifests
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "app=ecommerce-production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "app=ecommerce-staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger ArgoCD Sync
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer $ARGOCD_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$ARGOCD_SERVER/api/v1/applications/${{ steps.env.outputs.app }}/sync" \
+            -d '{}'
