@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: authentication
-          image: your-dockerhub-username/ecommerce-authentication:latest
+          image: cinnamoll/ecommerce-authentication:latest
           ports:
             - containerPort: 9000
           env:

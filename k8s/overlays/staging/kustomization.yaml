@@ -3,8 +3,8 @@ kind: Kustomization
 
 namespace: ecommerce-staging
 
-bases:
-  - ../../base
+#bases:
+#  - ../../base
 
 nameSuffix: -staging
 
@@ -20,22 +20,22 @@ replicas:
     count: 1
   - name: authentication
     count: 1
-
-patchesStrategicMerge:
-  - patch-replicas.yaml
+#
+#patchesStrategicMerge:
+#  - dispatch-replicas.yaml
 
 images:
-  - name: your-dockerhub-username/ecommerce-config
+  - name: cinnamoll/ecommerce-config
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-discovery-server
+  - name: cinnamoll/ecommerce-discovery-server
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-gateway
+  - name: cinnamoll/ecommerce-gateway
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-authentication
+  - name: cinnamoll/ecommerce-authentication
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-product
+  - name: cinnamoll/ecommerce-product
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-order
+  - name: cinnamoll/ecommerce-order
     newTag: staging-latest
-  - name: your-dockerhub-username/ecommerce-monitoring
+  - name: cinnamoll/ecommerce-monitoring
     newTag: staging-latest

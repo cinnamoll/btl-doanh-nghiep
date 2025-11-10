@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM eclipse-temurin:8-jdk-alpine
 ENV port=8080
 EXPOSE 8080
 ADD /target/product-1.0.jar product.jar

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: monitoring
-          image: your-dockerhub-username/ecommerce-monitoring:latest
+          image: cinnamoll/ecommerce-monitoring:latest
           ports:
             - containerPort: 9090
           env:

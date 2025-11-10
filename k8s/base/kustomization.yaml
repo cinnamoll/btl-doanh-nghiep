@@ -1,37 +1,73 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: ecommerce
-
-resources:
-  - namespace.yaml
-  - postgres/deployment.yaml
-  - postgres/service.yaml
-  - postgres/pvc.yaml
-  - config-server/deployment.yaml
-  - discovery-server/deployment.yaml
-  - gateway/deployment.yaml
-  - authentication/deployment.yaml
-  - product/deployment.yaml
-  - order/deployment.yaml
-  - monitoring/deployment.yaml
-
-commonLabels:
-  app.kubernetes.io/part-of: ecommerce-microservices
-  app.kubernetes.io/managed-by: argocd
-
-images:
-  - name: your-dockerhub-username/ecommerce-config
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-discovery-server
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-gateway
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-authentication
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-product
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-order
-    newTag: latest
-  - name: your-dockerhub-username/ecommerce-monitoring
-    newTag: latest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: ecommerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: cinnamoll/ecommerce-product:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: CONFIG_SERVER_URL
+              value: "http://config-server:8888"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://discovery-server:8761/eureka/"
+            - name: SPRING_R2DBC_URL
+              value: "r2dbc:postgresql://postgres:5432/ecommerce"
+            - name: SPRING_R2DBC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: SPRING_R2DBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: EXTRA_JAR_ARGS
+              value: "-Xms256m -Xmx512m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: ecommerce
+spec:
+  selector:
+    app: product-service
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP

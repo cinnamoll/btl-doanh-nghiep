@@ -3,8 +3,8 @@ kind: Kustomization
 
 namespace: ecommerce-production
 
-bases:
-  - ../../base
+#bases:
+#  - ../../base
 
 nameSuffix: -prod
 
@@ -22,17 +22,17 @@ replicas:
     count: 2
 
 images:
-  - name: your-dockerhub-username/ecommerce-config
+  - name: cinnamoll/ecommerce-config
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-discovery-server
+  - name: cinnamoll/ecommerce-discovery-server
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-gateway
+  - name: cinnamoll/ecommerce-gateway
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-authentication
+  - name: cinnamoll/ecommerce-authentication
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-product
+  - name: cinnamoll/ecommerce-product
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-order
+  - name: cinnamoll/ecommerce-order
     newTag: prod-latest
-  - name: your-dockerhub-username/ecommerce-monitoring
+  - name: cinnamoll/ecommerce-monitoring
     newTag: prod-latest

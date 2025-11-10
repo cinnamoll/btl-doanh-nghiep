@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM eclipse-temurin:8-jdk-alpine
 ENV port=8087
 EXPOSE 8087
 ADD /target/authentication-1.0.jar authentication.jar
