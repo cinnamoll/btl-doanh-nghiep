@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: config-server
-          image: cinnamoll/ecommerce-config:latest
+          image: ecommerce-config  # ← QUAN TRỌNG: Phải khớp với name trong kustomization
           ports:
             - containerPort: 8888
           env:
@@ -35,6 +35,13 @@ spec:
               port: 8888
             initialDelaySeconds: 30
             periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service

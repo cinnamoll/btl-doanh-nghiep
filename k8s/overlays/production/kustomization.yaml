@@ -3,8 +3,8 @@ kind: Kustomization
 
 namespace: ecommerce-production
 
-#bases:
-#  - ../../base
+resources:
+  - ../../base
 
 nameSuffix: -prod
 
@@ -22,17 +22,24 @@ replicas:
     count: 2
 
 images:
-  - name: cinnamoll/ecommerce-config
+  - name: ecommerce-config
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-config
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-discovery-server
+  - name: ecommerce-discovery-server
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-discovery-server
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-gateway
+  - name: ecommerce-gateway
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-gateway
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-authentication
+  - name: ecommerce-authentication
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-authentication
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-product
+  - name: ecommerce-product
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-product
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-order
+  - name: ecommerce-order
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-order
     newTag: prod-latest
-  - name: cinnamoll/ecommerce-monitoring
+  - name: ecommerce-monitoring
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-monitoring
     newTag: prod-latest

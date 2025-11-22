@@ -1,55 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: product-service
+  name: config-server
   namespace: ecommerce
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: product-service
+      app: config-server
   template:
     metadata:
       labels:
-        app: product-service
+        app: config-server
     spec:
       containers:
-        - name: product-service
-          image: cinnamoll/ecommerce-product:latest
+        - name: config-server
+          image: ecommerce-config  # ← QUAN TRỌNG: Phải khớp với name trong kustomization
           ports:
-            - containerPort: 8080
+            - containerPort: 8888
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
-              value: "http://config-server:8888"
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: "http://discovery-server:8761/eureka/"
-            - name: SPRING_R2DBC_URL
-              value: "r2dbc:postgresql://postgres:5432/ecommerce"
-            - name: SPRING_R2DBC_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: username
-            - name: SPRING_R2DBC_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: password
             - name: EXTRA_JAR_ARGS
               value: "-Xms256m -Xmx512m"
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 90
+              port: 8888
+            initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 60
+              port: 8888
+            initialDelaySeconds: 30
             periodSeconds: 10
           resources:
             requests:
@@ -62,12 +46,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: product-service
+  name: config-server
   namespace: ecommerce
 spec:
   selector:
-    app: product-service
+    app: config-server
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8888
+      targetPort: 8888
   type: ClusterIP

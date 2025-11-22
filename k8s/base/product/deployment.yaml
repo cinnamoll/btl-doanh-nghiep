@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: cinnamoll/ecommerce-product:latest
+          image: ecommerce-product  # ← Khớp với name trong kustomization
           ports:
             - containerPort: 8080
           env:
