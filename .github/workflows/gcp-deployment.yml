@@ -69,16 +69,16 @@ jobs:
         include:
           - service: config
             path: system/config
-            jar: config-1.0.jar
+            jar: service-config-1.0.jar
           - service: discovery-server
             path: system/discovery-server
-            jar: discovery-server-1.0.jar
+            jar: service-discovery-1.0.jar
           - service: gateway
             path: system/gateway
-            jar: gateway-1.0.jar
+            jar: service-gateway-1.0.jar
           - service: authentication
             path: system/authentication
-            jar: authentication-1.0.jar
+            jar: service-authentication-1.0.jar
           - service: product
             path: services/product
             jar: product-1.0.jar
@@ -87,7 +87,7 @@ jobs:
             jar: order-1.0.jar
           - service: monitoring
             path: system/monitoring
-            jar: monitoring-1.0.jar
+            jar: service-monitoring-1.0.jar
 
     steps:
       - name: Checkout code
