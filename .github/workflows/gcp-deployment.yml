@@ -287,6 +287,12 @@ jobs:
           gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
             --region=${{ env.GKE_REGION }}
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Determine environment
         id: env
         run: |
