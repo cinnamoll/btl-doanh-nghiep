@@ -1,5 +1,8 @@
 name: CI/CD to GCP GKE
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ temp-ci/cd, main ]
