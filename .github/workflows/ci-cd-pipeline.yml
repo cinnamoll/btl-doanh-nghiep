@@ -123,7 +123,7 @@ jobs:
             -t ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.env }}-latest \
             .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.tag }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.env }}-latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-${{ matrix.service }}:${{ steps.image-tag.outputs.env }}-latest
 
   # Job 3: Update Kubernetes Manifests
   update-manifests:
