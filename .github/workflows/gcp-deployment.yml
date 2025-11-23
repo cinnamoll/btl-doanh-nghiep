@@ -1,0 +1,400 @@
+name: CI/CD to GCP GKE
+
+on:
+  push:
+    branches: [ temp-ci/cd, main ]
+  pull_request:
+    branches: [ temp-ci/cd, main ]
+
+env:
+  PROJECT_ID: btl-ecommerce-prod
+  GKE_CLUSTER: ecommerce-cluster
+  GKE_REGION: asia-southeast1
+  DOCKER_REPO: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod/ecommerce-repo
+
+jobs:
+  # Job 1: Build and Test
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests
+
+      - name: Run Tests
+        run: mvn test
+        continue-on-error: true
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/target/surefire-reports/*.xml'
+          retention-days: 7
+
+  # Job 2: Build and Push Docker Images to GCR
+  build-push-gcr:
+    name: Build and Push to GCR
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # System services
+          - service: config
+            path: system/config
+            jar: config-1.0.jar
+            port: 8888
+          - service: discovery-server
+            path: system/discovery-server
+            jar: service-discovery-1.0.jar
+            port: 8761
+          - service: gateway
+            path: system/gateway
+            jar: gateway-1.0.jar
+            port: 8080
+          - service: authentication
+            path: system/authentication
+            jar: authentication-1.0.jar
+            port: 9000
+          - service: monitoring
+            path: system/monitoring
+            jar: monitoring-1.0.jar
+            port: 9090
+
+          # Business services
+          - service: product
+            path: services/product
+            jar: product-1.0.jar
+            port: 8081
+          - service: order
+            path: services/order
+            jar: order-1.0.jar
+            port: 8082
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build specific module
+        run: mvn clean package -pl ${{ matrix.path }} -am -DskipTests
+
+      - name: Verify JAR exists
+        run: |
+          echo "📁 Listing target directory for ${{ matrix.service }}:"
+          ls -la ${{ matrix.path }}/target/
+          
+          if [ ! -f "${{ matrix.path }}/target/${{ matrix.jar }}" ]; then
+            echo "❌ JAR file not found: ${{ matrix.jar }}"
+            echo "Available files:"
+            ls -la ${{ matrix.path }}/target/*.jar 2>/dev/null || echo "No JAR files found"
+            exit 1
+          fi
+          
+          echo "✅ JAR file found: ${{ matrix.jar }}"
+
+      # Authenticate to Google Cloud
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Configure Docker for GCR'
+        run: |
+          gcloud auth configure-docker ${{ env.GKE_REGION }}-docker.pkg.dev
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tag=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "env=production" >> $GITHUB_OUTPUT
+            echo "latest_tag=prod-latest" >> $GITHUB_OUTPUT
+          else
+            echo "tag=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "env=staging" >> $GITHUB_OUTPUT
+            echo "latest_tag=staging-latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push ${{ matrix.service }} to GCR
+        working-directory: ${{ matrix.path }}
+        run: |
+          IMAGE_NAME=${{ env.DOCKER_REPO }}/ecommerce-${{ matrix.service }}
+          
+          echo "🔨 Building Docker image for ${{ matrix.service }}..."
+          echo "📦 Using JAR: ${{ matrix.jar }}"
+          echo "🏷️  Image tags:"
+          echo "   - ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}"
+          echo "   - ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }}"
+          
+          # Build with JAR file as build arg
+          docker build \
+            --build-arg JAR_FILE=target/${{ matrix.jar }} \
+            -t ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }} \
+            -t ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }} \
+            .
+          
+          echo "📤 Pushing images to Google Artifact Registry..."
+          docker push ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}
+          docker push ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }}
+          
+          echo "✅ Successfully pushed ${{ matrix.service }}"
+          echo "   Image: ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}"
+
+  # Job 3: Update Kubernetes Manifests
+  update-manifests:
+    name: Update K8s Manifests for ArgoCD
+    runs-on: ubuntu-latest
+    needs: build-push-gcr
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Determine environment
+        id: env
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "tag=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "tag=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          kustomize version
+
+      - name: Update image tags in kustomization
+        run: |
+          cd k8s/overlays/${{ steps.env.outputs.environment }}
+          
+          DOCKER_REPO=${{ env.DOCKER_REPO }}
+          TAG=${{ steps.env.outputs.tag }}
+          
+          echo "📝 Updating image tags to ${TAG}..."
+          
+          kustomize edit set image \
+            ecommerce-config=${DOCKER_REPO}/ecommerce-config:${TAG} \
+            ecommerce-discovery-server=${DOCKER_REPO}/ecommerce-discovery-server:${TAG} \
+            ecommerce-gateway=${DOCKER_REPO}/ecommerce-gateway:${TAG} \
+            ecommerce-authentication=${DOCKER_REPO}/ecommerce-authentication:${TAG} \
+            ecommerce-product=${DOCKER_REPO}/ecommerce-product:${TAG} \
+            ecommerce-order=${DOCKER_REPO}/ecommerce-order:${TAG} \
+            ecommerce-monitoring=${DOCKER_REPO}/ecommerce-monitoring:${TAG}
+          
+          echo "✅ Updated kustomization.yaml"
+          cat kustomization.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          git add k8s/overlays/${{ steps.env.outputs.environment }}/kustomization.yaml
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🚀 Update ${{ steps.env.outputs.environment }} image tags to ${{ steps.env.outputs.tag }}"
+            git push
+            echo "✅ Changes pushed to repository"
+          fi
+
+  # Job 4: Deploy to GKE (Optional - if not using ArgoCD)
+  deploy-gke:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: update-manifests
+    if: github.event_name == 'push' && vars.ENABLE_DIRECT_DEPLOY == 'true'
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Get GKE credentials'
+        run: |
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region=${{ env.GKE_REGION }}
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "namespace=ecommerce-production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "namespace=ecommerce-staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Create namespace and secrets
+        run: |
+          kubectl create namespace ${{ steps.env.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Create database secret if not exists
+          kubectl get secret postgres-secret -n ${{ steps.env.outputs.namespace }} || \
+          kubectl create secret generic postgres-secret \
+            --from-literal=username=admin \
+            --from-literal=password=${{ secrets.DB_PASSWORD }} \
+            -n ${{ steps.env.outputs.namespace }}
+
+      - name: Deploy to GKE
+        run: |
+          cd k8s/overlays/${{ steps.env.outputs.environment }}
+          
+          echo "🚀 Deploying to ${{ steps.env.outputs.environment }}..."
+          kustomize build . | kubectl apply -f -
+          
+          echo "✅ Deployed to ${{ steps.env.outputs.environment }}"
+
+      - name: Wait for deployments
+        run: |
+          echo "⏳ Waiting for deployments to be ready..."
+          
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/config-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+            -n ${{ steps.env.outputs.namespace }} || true
+          
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/discovery-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+            -n ${{ steps.env.outputs.namespace }} || true
+          
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+            -n ${{ steps.env.outputs.namespace }} || true
+
+      - name: Get service URLs
+        run: |
+          echo "🌐 Service URLs:"
+          kubectl get svc -n ${{ steps.env.outputs.namespace }}
+          
+          GATEWAY_IP=$(kubectl get svc gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+            -n ${{ steps.env.outputs.namespace }} \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+          
+          if [ "$GATEWAY_IP" != "pending" ]; then
+            echo "✅ Gateway URL: http://${GATEWAY_IP}"
+          else
+            echo "⏳ Gateway LoadBalancer IP is pending..."
+          fi
+
+  # Job 5: Notification
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [build-push-gcr, update-manifests]
+    if: always() && github.event_name == 'push'
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ needs.build-push-gcr.result }}" == "success" ]] && \
+             [[ "${{ needs.update-manifests.result }}" == "success" ]]; then
+            echo "status=✅ Success" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Failed" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+          fi
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "env=Production" >> $GITHUB_OUTPUT
+          else
+            echo "env=Staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create summary
+        run: |
+          echo "# Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.status.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ steps.status.outputs.env }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Services Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- Config Server" >> $GITHUB_STEP_SUMMARY
+          echo "- Discovery Server (Eureka)" >> $GITHUB_STEP_SUMMARY
+          echo "- API Gateway" >> $GITHUB_STEP_SUMMARY
+          echo "- Authentication Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Product Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Order Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitoring Service" >> $GITHUB_STEP_SUMMARY

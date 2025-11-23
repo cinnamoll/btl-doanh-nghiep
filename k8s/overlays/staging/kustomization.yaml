@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ecommerce-staging
+# Reference base
+resources:
+- ../../base
+# Add staging suffix
+nameSuffix: -staging
+# Staging labels
+# Staging replicas
+replicas:
+- count: 1
+  name: product-service
+- count: 1
+  name: order-service
+- count: 1
+  name: gateway
+- count: 1
+  name: authentication
+# Images override
+# QUAN TRỌNG: Thay YOUR_PROJECT_ID và YOUR_REGION
+images:
+- name: ecommerce-config
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-config
+  newTag: staging-latest
+- name: ecommerce-discovery-server
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-discovery-server
+  newTag: staging-latest
+- name: ecommerce-gateway
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-gateway
+  newTag: staging-latest
+- name: ecommerce-authentication
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-authentication
+  newTag: staging-latest
+- name: ecommerce-product
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-product
+  newTag: staging-latest
+- name: ecommerce-order
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-order
+  newTag: staging-latest
+- name: ecommerce-monitoring
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-monitoring
+  newTag: staging-latest
+labels:
+- includeSelectors: true
+  pairs:
+    environment: staging

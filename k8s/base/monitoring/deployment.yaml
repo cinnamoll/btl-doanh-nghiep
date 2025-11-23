@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring
+  template:
+    metadata:
+      labels:
+        app: monitoring
+    spec:
+      containers:
+        - name: monitoring
+          image: cinnamoll/ecommerce-monitoring:latest
+          ports:
+            - containerPort: 9090
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: CONFIG_SERVER_URL
+              value: "http://config-server:8888"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://discovery-server:8761/eureka/"
+            - name: EXTRA_JAR_ARGS
+              value: "-Xms256m -Xmx512m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring
+  namespace: ecommerce
+spec:
+  selector:
+    app: monitoring
+  ports:
+    - port: 9090
+      targetPort: 9090
+  type: ClusterIP
