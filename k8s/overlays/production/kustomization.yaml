@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: ecommerce-production
 
 resources:
-  - ../../base
+- ../../base
 
 nameSuffix: -prod
 
@@ -12,34 +12,55 @@ commonLabels:
   environment: production
 
 replicas:
-  - name: product-service
-    count: 3
-  - name: order-service
-    count: 3
-  - name: gateway
-    count: 3
-  - name: authentication
-    count: 2
+- count: 3
+  name: product-service
+- count: 3
+  name: order-service
+- count: 3
+  name: gateway
+- count: 2
+  name: authentication
 
 images:
-  - name: ecommerce-config
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-config
-    newTag: prod-latest
-  - name: ecommerce-discovery-server
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-discovery-server
-    newTag: prod-latest
-  - name: ecommerce-gateway
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-gateway
-    newTag: prod-latest
-  - name: ecommerce-authentication
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-authentication
-    newTag: prod-latest
-  - name: ecommerce-product
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-product
-    newTag: prod-latest
-  - name: ecommerce-order
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-order
-    newTag: prod-latest
-  - name: ecommerce-monitoring
-    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-monitoring
-    newTag: prod-latest
+- name: 23341/ecommerce-authentication
+  newName: 23341/ecommerce-authentication
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-config
+  newName: 23341/ecommerce-config
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-discovery-server
+  newName: 23341/ecommerce-discovery-server
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-gateway
+  newName: 23341/ecommerce-gateway
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-monitoring
+  newName: 23341/ecommerce-monitoring
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-order
+  newName: 23341/ecommerce-order
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: 23341/ecommerce-product
+  newName: 23341/ecommerce-product
+  newTag: prod-937e92a61894972dc652838db1aa161d918dddce
+- name: ecommerce-authentication
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-authentication
+  newTag: prod-latest
+- name: ecommerce-config
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-config
+  newTag: prod-latest
+- name: ecommerce-discovery-server
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-discovery-server
+  newTag: prod-latest
+- name: ecommerce-gateway
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-gateway
+  newTag: prod-latest
+- name: ecommerce-monitoring
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-monitoring
+  newTag: prod-latest
+- name: ecommerce-order
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-order
+  newTag: prod-latest
+- name: ecommerce-product
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-product
+  newTag: prod-latest

@@ -1,5 +1,8 @@
 name: CI/CD to GCP GKE
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ temp-ci/cd, main ]
@@ -239,6 +242,8 @@ jobs:
             ecommerce-monitoring=${DOCKER_REPO}/ecommerce-monitoring:${TAG}
           
           echo "✅ Updated kustomization.yaml"
+          
+          
           cat kustomization.yaml
 
       - name: Commit and push changes
