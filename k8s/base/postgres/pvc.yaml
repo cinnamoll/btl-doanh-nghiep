@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: standard  # ← Thay đổi theo cluster của bạn
+#  storageClassName: standard  # ← Thay đổi theo cluster của bạn

@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: discovery-service
+#  cloud:
+#    uri: http://config-server:8111
+#    fail-fast: true
+#    retry:
+#      initial-interval: 2000 # Thời gian chờ ban đầu là 2 giây
+#      max-attempts: 15       # Số lần thử lại tối đa
+#      max-interval: 5000
 
 
 eureka:
@@ -13,8 +20,8 @@ eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
-  #    service-url:
-  #      default-zone: http://localhost:2222/eureka/
+#  service-url:
+#    default-zone: http://discovery-server:2222/eureka/
   server:
     wait-time-in-ms-when-sync-empty: 0
     enable-self-preservation: false

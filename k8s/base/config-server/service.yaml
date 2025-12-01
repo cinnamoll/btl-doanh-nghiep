@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server  # Tên này phải KHỚP với CONFIG_SERVICE_URL
+  namespace: ecommerce
+spec:
+  selector:
+    app: config-server # Phải khớp với label trong Deployment Config Server
+  ports:
+    - protocol: TCP
+      port: 8888       # Port các service khác gọi vào
+      targetPort: 8888 # Port ứng dụng chạy bên trong container
+  type: ClusterIP

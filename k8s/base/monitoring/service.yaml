@@ -1,0 +1,14 @@
+# k8s/base/monitoring/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring
+  namespace: ecommerce
+spec:
+  selector:
+    app: monitoring
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+  type: ClusterIP

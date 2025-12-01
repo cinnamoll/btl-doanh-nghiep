@@ -4,7 +4,7 @@ metadata:
   name: authentication
   namespace: ecommerce
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: authentication
@@ -21,18 +21,24 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
+            - name: CONFIG_SERVICE_URL
               value: "http://config-server:8888"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://discovery-server:8761/eureka/"
-            - name: SPRING_R2DBC_URL
-              value: "r2dbc:postgresql://postgres:5432/ecommerce"
-            - name: SPRING_R2DBC_USERNAME
+
+            # --- 1. SỬA LỖI KEYSTORE (BẮT BUỘC) ---
+            - name: KEYSTORE_PASSWORD
+              value: "password"
+
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://136.110.34.231:5432/postgres"
+
+            - name: SPRING_DATASOURCE_USERNAME # Thay vì SPRING_R2DBC_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
                   key: username
-            - name: SPRING_R2DBC_PASSWORD
+            - name: SPRING_DATASOURCE_PASSWORD # Thay vì SPRING_R2DBC_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
