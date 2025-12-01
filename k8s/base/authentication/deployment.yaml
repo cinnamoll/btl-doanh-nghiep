@@ -13,6 +13,8 @@ spec:
       labels:
         app: authentication
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: authentication
           image: cinnamoll/ecommerce-authentication:latest

@@ -13,6 +13,8 @@ spec:
       labels:
         app: order-service
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: order-service
           image: cinnamoll/ecommerce-order:latest

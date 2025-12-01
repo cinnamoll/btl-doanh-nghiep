@@ -13,6 +13,8 @@ spec:
       labels:
         app: config-server
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: config-server
           image: cinnamoll/ecommerce-config:latest  # ← QUAN TRỌNG: Phải khớp với name trong kustomization

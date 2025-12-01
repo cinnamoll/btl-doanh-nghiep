@@ -13,6 +13,8 @@ spec:
       labels:
         app: monitoring
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: monitoring
           image: cinnamoll/ecommerce-monitoring:latest
