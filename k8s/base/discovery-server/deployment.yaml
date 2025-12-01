@@ -13,6 +13,8 @@ spec:
       labels:
         app: discovery-server
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: discovery-server
           image: cinnamoll/ecommerce-discovery-server:latest

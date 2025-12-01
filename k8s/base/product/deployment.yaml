@@ -13,6 +13,8 @@ spec:
       labels:
         app: product-service
     spec:
+      imagePullSecrets:
+        - name: artifact-registry-key
       containers:
         - name: product-service
           image: cinnamoll/ecommerce-product:latest  # ← Khớp với name trong kustomization
