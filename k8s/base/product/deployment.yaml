@@ -4,7 +4,7 @@ metadata:
   name: product-service
   namespace: ecommerce
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: product-service
@@ -15,18 +15,18 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: ecommerce-product  # ← Khớp với name trong kustomization
+          image: cinnamoll/ecommerce-product:latest  # ← Khớp với name trong kustomization
           ports:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
+            - name: CONFIG_SERVICE_URL
               value: "http://config-server:8888"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://discovery-server:8761/eureka/"
             - name: SPRING_R2DBC_URL
-              value: "r2dbc:postgresql://postgres:5432/ecommerce"
+              value: "r2dbc:postgresql://136.110.34.231/postgres"
             - name: SPRING_R2DBC_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -53,21 +53,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "180Mi"
+              cpu: "50m"
             limits:
               memory: "512Mi"
               cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: product-service
-  namespace: ecommerce
-spec:
-  selector:
-    app: product-service
-  ports:
-    - port: 8080
-      targetPort: 8080
-  type: ClusterIP

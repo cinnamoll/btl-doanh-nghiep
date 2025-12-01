@@ -17,26 +17,20 @@ spec:
         - name: monitoring
           image: cinnamoll/ecommerce-monitoring:latest
           ports:
-            - containerPort: 9090
+            - containerPort: 8000
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
+            - name: CONFIG_SERVICE_URL
               value: "http://config-server:8888"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://discovery-server:8761/eureka/"
             - name: EXTRA_JAR_ARGS
               value: "-Xms256m -Xmx512m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: monitoring
-  namespace: ecommerce
-spec:
-  selector:
-    app: monitoring
-  ports:
-    - port: 9090
-      targetPort: 9090
-  type: ClusterIP
+          resources:
+            requests:
+              memory: "180Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

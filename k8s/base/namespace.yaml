@@ -1,37 +1,40 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: ecommerce
-
-resources:
-  - namespace.yaml
-  - postgres/deployment.yaml
-  - postgres/service.yaml
-  - postgres/pvc.yaml
-  - config-server/deployment.yaml
-  - discovery-server/deployment.yaml
-  - gateway/deployment.yaml
-  - authentication/deployment.yaml
-  - product/deployment.yaml
-  - order/deployment.yaml
-  - monitoring/deployment.yaml
-
-commonLabels:
-  app.kubernetes.io/part-of: ecommerce-microservices
-  app.kubernetes.io/managed-by: argocd
-
-images:
-  - name: cinnamoll/ecommerce-config
-    newTag: latest
-  - name: cinnamoll/ecommerce-discovery-server
-    newTag: latest
-  - name: cinnamoll/ecommerce-gateway
-    newTag: latest
-  - name: cinnamoll/ecommerce-authentication
-    newTag: latest
-  - name: cinnamoll/ecommerce-product
-    newTag: latest
-  - name: cinnamoll/ecommerce-order
-    newTag: latest
-  - name: cinnamoll/ecommerce-monitoring
-    newTag: latest
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce
+  labels:
+    name: ecommerce
+    environment: production
+---
+# Giới hạn tổng tài nguyên cho cả Namespace (Tránh bị tính tiền quá lố trên GCP)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ecommerce-quota
+  namespace: ecommerce
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "50"
+    services: "30"
+    persistentvolumeclaims: "20"
+---
+# Thiết lập mặc định nếu quên set limit trong Deployment
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ecommerce-limitrange
+  namespace: ecommerce
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 1000m
+        memory: 1Gi
+      defaultRequest:
+        cpu: 100m
+        memory: 256Mi
+# Tạm thời tắt NetworkPolicy để đảm bảo Gateway thông mạng

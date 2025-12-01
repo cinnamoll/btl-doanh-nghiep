@@ -4,7 +4,7 @@ metadata:
   name: gateway
   namespace: ecommerce
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: gateway
@@ -21,7 +21,7 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
+            - name: CONFIG_SERVICE_URL
               value: "http://config-server:8888"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://discovery-server:8761/eureka/"
@@ -41,21 +41,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "180Mi"
+              cpu: "50m"
             limits:
               memory: "512Mi"
               cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: gateway
-  namespace: ecommerce
-spec:
-  selector:
-    app: gateway
-  ports:
-    - port: 80
-      targetPort: 8080
-  type: LoadBalancer  # hoặc NodePort, hoặc Ingress

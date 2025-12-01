@@ -61,12 +61,15 @@ services:
     env_file:
       - common.env
     environment:
-      EXTRA_JAR_ARGS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8180
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - EXTRA_JAR_ARGS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8180
     ports:
       - "8080:8080"
       - "8180:8180" #debug port
     depends_on:
       - authentication-server
+      - config-server
+    restart: on-failure
     links:
       - config-server
       - discovery-server
@@ -78,6 +81,7 @@ services:
     build: services/order
     env_file:
       - common.env
+    restart: on-failure
     environment:
       EXTRA_JAR_ARGS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8181
     ports:
@@ -96,6 +100,10 @@ services:
     build: system/gateway
     env_file:
       - common.env
+    restart: on-failure
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:2222/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8111
     ports:
       - "8765:8765"
     depends_on:
@@ -109,6 +117,8 @@ services:
     build: system/monitoring
     env_file:
       - common.env
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:2222/eureka/
     ports:
       - "8000:8000"
     depends_on:

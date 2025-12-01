@@ -21,7 +21,7 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "kubernetes"
-            - name: CONFIG_SERVER_URL
+            - name: CONFIG_SERVICE_URL
               value: "http://config-server:8888"
             - name: EXTRA_JAR_ARGS
               value: "-Xms256m -Xmx512m"
@@ -37,16 +37,10 @@ spec:
               port: 8761
             initialDelaySeconds: 60
             periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: discovery-server
-  namespace: ecommerce
-spec:
-  selector:
-    app: discovery-server
-  ports:
-    - port: 8761
-      targetPort: 8761
-  type: ClusterIP
+          resources:
+            requests:
+              memory: "180Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
