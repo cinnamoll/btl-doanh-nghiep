@@ -10,10 +10,10 @@ on:
     branches: [ temp-ci/cd, main ]
 
 env:
-  PROJECT_ID: btl-ecommerce-prod-478097
+  PROJECT_ID: btl-ecommerce-prod-480008
   GKE_CLUSTER: ecommerce-cluster
-  GKE_REGION: asia-southeast1
-  DOCKER_REPO: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478097/ecommerce-repo
+  GKE_REGION: asia-southeast2
+  DOCKER_REPO: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo
 
 jobs:
   # Job 1: Build and Test
