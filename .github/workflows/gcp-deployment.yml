@@ -275,6 +275,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "🚀 Update ${{ steps.env.outputs.environment }} image tags to ${{ steps.env.outputs.tag }}"
+            git pull --rebase origin main
             git push
             echo "✅ Changes pushed to repository"
           fi
