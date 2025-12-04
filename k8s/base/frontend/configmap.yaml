@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: ecommerce
+data:
+  REACT_APP_API_BASE_URL: "http://gateway-service:8000"
+  REACT_APP_NAME: "E-commerce Platform"
