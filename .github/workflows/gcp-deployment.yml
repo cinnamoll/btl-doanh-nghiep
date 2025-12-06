@@ -10,7 +10,7 @@ on:
     branches: [ temp-ci/cd, main ]
 
 env:
-  PROJECT_ID: btl-ecommerce-prod-480008
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GKE_CLUSTER: ecommerce-cluster
   GKE_REGION: asia-southeast1
   DOCKER_REPO: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo
@@ -146,7 +146,8 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
@@ -264,104 +265,104 @@ jobs:
             git push
             echo "✅ Changes pushed to repository"
           fi
-
-  # Job 4: Deploy to GKE (Optional - if not using ArgoCD)
-  deploy-gke:
-    name: Deploy to GKE
-    runs-on: ubuntu-latest
-    needs: update-manifests
-    if: github.event_name == 'push' && vars.ENABLE_DIRECT_DEPLOY == 'true'
-
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
-
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: 'Get GKE credentials'
-        run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
-            --region=${{ env.GKE_REGION }}
-
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "namespace=ecommerce-production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "namespace=ecommerce-staging" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Install Kustomize
-        run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-          sudo mv kustomize /usr/local/bin/
-
-      - name: Create namespace and secrets
-        run: |
-          kubectl create namespace ${{ steps.env.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Create database secret if not exists
-          kubectl get secret postgres-secret -n ${{ steps.env.outputs.namespace }} || \
-          kubectl create secret generic postgres-secret \
-            --from-literal=username=admin \
-            --from-literal=password=${{ secrets.DB_PASSWORD }} \
-            -n ${{ steps.env.outputs.namespace }}
-
-      - name: Deploy to GKE
-        run: |
-          cd k8s/overlays/${{ steps.env.outputs.environment }}
-          
-          echo "🚀 Deploying to ${{ steps.env.outputs.environment }}..."
-          kustomize build . | kubectl apply -f -
-          
-          echo "✅ Deployed to ${{ steps.env.outputs.environment }}"
-
-      - name: Wait for deployments
-        run: |
-          echo "⏳ Waiting for deployments to be ready..."
-          
-          kubectl wait --for=condition=available --timeout=300s \
-            deployment/config-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
-            -n ${{ steps.env.outputs.namespace }} || true
-          
-          kubectl wait --for=condition=available --timeout=300s \
-            deployment/discovery-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
-            -n ${{ steps.env.outputs.namespace }} || true
-          
-          kubectl wait --for=condition=available --timeout=300s \
-            deployment/gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
-            -n ${{ steps.env.outputs.namespace }} || true
-
-      - name: Get service URLs
-        run: |
-          echo "🌐 Service URLs:"
-          kubectl get svc -n ${{ steps.env.outputs.namespace }}
-          
-          GATEWAY_IP=$(kubectl get svc gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
-            -n ${{ steps.env.outputs.namespace }} \
-            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
-          
-          if [ "$GATEWAY_IP" != "pending" ]; then
-            echo "✅ Gateway URL: http://${GATEWAY_IP}"
-          else
-            echo "⏳ Gateway LoadBalancer IP is pending..."
-          fi
+#
+#  # Job 4: Deploy to GKE (Optional - if not using ArgoCD)
+#  deploy-gke:
+#    name: Deploy to GKE
+#    runs-on: ubuntu-latest
+#    needs: update-manifests
+#    if: github.event_name == 'push' && vars.ENABLE_DIRECT_DEPLOY == 'true'
+#
+#    permissions:
+#      contents: 'read'
+#      id-token: 'write'
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#          ref: ${{ github.ref }}
+#
+#      - id: 'auth'
+#        name: 'Authenticate to Google Cloud'
+#        uses: 'google-github-actions/auth@v2'
+#        with:
+#          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+#
+#      - name: 'Set up Cloud SDK'
+#        uses: 'google-github-actions/setup-gcloud@v2'
+#
+#      - name: 'Get GKE credentials'
+#        run: |
+#          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+#            --region=${{ env.GKE_REGION }}
+#
+#      - name: Determine environment
+#        id: env
+#        run: |
+#          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+#            echo "environment=production" >> $GITHUB_OUTPUT
+#            echo "namespace=ecommerce-production" >> $GITHUB_OUTPUT
+#          else
+#            echo "environment=staging" >> $GITHUB_OUTPUT
+#            echo "namespace=ecommerce-staging" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Install Kustomize
+#        run: |
+#          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+#          sudo mv kustomize /usr/local/bin/
+#
+#      - name: Create namespace and secrets
+#        run: |
+#          kubectl create namespace ${{ steps.env.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+#
+#          # Create database secret if not exists
+#          kubectl get secret postgres-secret -n ${{ steps.env.outputs.namespace }} || \
+#          kubectl create secret generic postgres-secret \
+#            --from-literal=username=admin \
+#            --from-literal=password=${{ secrets.DB_PASSWORD }} \
+#            -n ${{ steps.env.outputs.namespace }}
+#
+#      - name: Deploy to GKE
+#        run: |
+#          cd k8s/overlays/${{ steps.env.outputs.environment }}
+#
+#          echo "🚀 Deploying to ${{ steps.env.outputs.environment }}..."
+#          kustomize build . | kubectl apply -f -
+#
+#          echo "✅ Deployed to ${{ steps.env.outputs.environment }}"
+#
+#      - name: Wait for deployments
+#        run: |
+#          echo "⏳ Waiting for deployments to be ready..."
+#
+#          kubectl wait --for=condition=available --timeout=300s \
+#            deployment/config-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+#            -n ${{ steps.env.outputs.namespace }} || true
+#
+#          kubectl wait --for=condition=available --timeout=300s \
+#            deployment/discovery-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+#            -n ${{ steps.env.outputs.namespace }} || true
+#
+#          kubectl wait --for=condition=available --timeout=300s \
+#            deployment/gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+#            -n ${{ steps.env.outputs.namespace }} || true
+#
+#      - name: Get service URLs
+#        run: |
+#          echo "🌐 Service URLs:"
+#          kubectl get svc -n ${{ steps.env.outputs.namespace }}
+#
+#          GATEWAY_IP=$(kubectl get svc gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
+#            -n ${{ steps.env.outputs.namespace }} \
+#            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+#
+#          if [ "$GATEWAY_IP" != "pending" ]; then
+#            echo "✅ Gateway URL: http://${GATEWAY_IP}"
+#          else
+#            echo "⏳ Gateway LoadBalancer IP is pending..."
+#          fi
 
   # Job 5: Notification
   notify:
