@@ -17,7 +17,7 @@ spec:
         - name: artifact-registry-key
       containers:
         - name: config-server
-          image: cinnamoll/ecommerce-config:latest  # ← QUAN TRỌNG: Phải khớp với name trong kustomization
+          image: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/config-server:latest
           ports:
             - containerPort: 8888
           env:

@@ -17,7 +17,7 @@ spec:
         - name: artifact-registry-key
       containers:
         - name: authentication
-          image: cinnamoll/ecommerce-authentication:latest
+          image: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/authentication:latest
           ports:
             - containerPort: 9000
           env:

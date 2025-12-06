@@ -12,9 +12,9 @@ labels:
 resources:
   - namespace.yaml
 #  # Postgres
-#  - postgres/deployment.yaml
-#  - postgres/service.yaml
-#  - postgres/pvc.yaml
+  - postgres/deployment.yaml
+  - postgres/service.yaml
+  - postgres/pvc.yaml
   # Config Server
   - config-server/deployment.yaml
   - config-server/service.yaml
@@ -36,24 +36,24 @@ resources:
   - monitoring/service.yaml
 
 images:
-  - name: cinnamoll/ecommerce-config
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-config
+  - name: cinnamoll/ecommerce-config-server
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-config
     newTag: latest
   - name: cinnamoll/ecommerce-discovery-server
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-discovery-server
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-discovery-server
     newTag: latest
   - name: cinnamoll/ecommerce-gateway
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-gateway
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-gateway
     newTag: latest
   - name: cinnamoll/ecommerce-authentication
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-authentication
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-authentication
     newTag: latest
   - name: cinnamoll/ecommerce-product
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-product
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-product
     newTag: latest
   - name: cinnamoll/ecommerce-order
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-order
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-order
     newTag: latest
   - name: cinnamoll/ecommerce-monitoring
-    newName: asia-southeast2-docker.pkg.dev/btl-ecommerce-prod-480008/ecommerce-repo/ecommerce-monitoring
+    newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-monitoring
     newTag: latest
