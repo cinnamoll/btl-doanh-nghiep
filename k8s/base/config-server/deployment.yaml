@@ -22,7 +22,7 @@ spec:
             - containerPort: 8888
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: "kubernetes"
+              value: "native"
             - name: EXTRA_JAR_ARGS
               value: "-Xms256m -Xmx512m"
           livenessProbe:
