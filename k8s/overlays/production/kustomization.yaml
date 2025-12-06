@@ -24,25 +24,25 @@ replicas:
 images:
 - name: 23341/ecommerce-authentication
   newName: 23341/ecommerce-authentication
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-config
   newName: 23341/ecommerce-config
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-discovery-server
   newName: 23341/ecommerce-discovery-server
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-gateway
   newName: 23341/ecommerce-gateway
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-monitoring
   newName: 23341/ecommerce-monitoring
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-order
   newName: 23341/ecommerce-order
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: 23341/ecommerce-product
   newName: 23341/ecommerce-product
-  newTag: prod-b434db8674404f0df3d3e465fa7e62fa502e735c
+  newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: ecommerce-authentication
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-authentication
   newTag: prod-b434db8
