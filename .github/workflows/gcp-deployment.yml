@@ -128,18 +128,29 @@ jobs:
         run: mvn clean package -pl ${{ matrix.path }} -am -DskipTests
 
       - name: Verify JAR exists
+        id: verify
         run: |
           echo "📁 Listing target directory for ${{ matrix.service }}:"
-          ls -la ${{ matrix.path }}/target/
-          
-          if [ ! -f "${{ matrix.path }}/target/${{ matrix.jar }}" ]; then
-            echo "❌ JAR file not found: ${{ matrix.jar }}"
-            echo "Available files:"
-            ls -la ${{ matrix.path }}/target/*.jar 2>/dev/null || echo "No JAR files found"
-            exit 1
+          ls -la ${{ matrix.path }}/target/ || true
+
+          # Try to determine finalName from the module pom
+          FINAL_NAME=$(mvn -q -f "${{ matrix.path }}/pom.xml" \
+            help:evaluate -Dexpression=project.build.finalName -DforceStdout 2>/dev/null || true)
+
+          if [ -n "$FINAL_NAME" ] && [ -f "${{ matrix.path }}/target/${FINAL_NAME}.jar" ]; then
+            echo "✅ Found JAR via finalName: ${{ matrix.path }}/target/${FINAL_NAME}.jar"
+            echo "JAR_FILE=${{ matrix.path }}/target/${FINAL_NAME}.jar" >> $GITHUB_OUTPUT
+          else
+            CANDIDATE=$(ls ${{ matrix.path }}/target/*.jar 2>/dev/null | grep -v 'original' | grep -v 'sources' | head -n1 || true)
+            if [ -n "$CANDIDATE" ]; then
+              echo "✅ Found JAR via listing: $CANDIDATE"
+              echo "JAR_FILE=$CANDIDATE" >> $GITHUB_OUTPUT
+            else
+              echo "❌ No JAR found in ${{ matrix.path }}/target/"
+              ls -la ${{ matrix.path }}/target/ || true
+              exit 1
+            fi
           fi
-          
-          echo "✅ JAR file found: ${{ matrix.jar }}"
 
       # Authenticate to Google Cloud
       - id: 'auth'
@@ -173,24 +184,28 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           IMAGE_NAME=${{ env.DOCKER_REPO }}/ecommerce-${{ matrix.service }}
-          
+
           echo "🔨 Building Docker image for ${{ matrix.service }}..."
           echo "📦 Using JAR: ${{ matrix.jar }}"
           echo "🏷️  Image tags:"
           echo "   - ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}"
           echo "   - ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }}"
-          
+
+          # Resolve JAR basename from verify step
+          JAR_BASENAME=$(basename "${{ steps.verify.outputs.JAR_FILE }}")
+          echo "Using resolved JAR: $JAR_BASENAME"
+
           # Build with JAR file as build arg
           docker build \
-            --build-arg JAR_FILE=target/${{ matrix.jar }} \
+            --build-arg JAR_FILE=target/${JAR_BASENAME} \
             -t ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }} \
             -t ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }} \
             .
-          
+
           echo "📤 Pushing images to Google Artifact Registry..."
           docker push ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}
           docker push ${IMAGE_NAME}:${{ steps.image-tag.outputs.latest_tag }}
-          
+
           echo "✅ Successfully pushed ${{ matrix.service }}"
           echo "   Image: ${IMAGE_NAME}:${{ steps.image-tag.outputs.tag }}"
 
@@ -229,12 +244,12 @@ jobs:
       - name: Update image tags in kustomization
         run: |
           cd k8s/overlays/${{ steps.env.outputs.environment }}
-          
+
           DOCKER_REPO=${{ env.DOCKER_REPO }}
           TAG=${{ steps.env.outputs.tag }}
-          
+
           echo "📝 Updating image tags to ${TAG}..."
-          
+
           kustomize edit set image \
             ecommerce-config=${DOCKER_REPO}/ecommerce-config:${TAG} \
             ecommerce-discovery-server=${DOCKER_REPO}/ecommerce-discovery-server:${TAG} \
@@ -243,9 +258,9 @@ jobs:
             ecommerce-product=${DOCKER_REPO}/ecommerce-product:${TAG} \
             ecommerce-order=${DOCKER_REPO}/ecommerce-order:${TAG} \
             ecommerce-monitoring=${DOCKER_REPO}/ecommerce-monitoring:${TAG}
-          
+
           echo "✅ Updated kustomization.yaml"
-          
+
           
           cat kustomization.yaml
 
@@ -253,9 +268,9 @@ jobs:
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          
+
           git add k8s/overlays/${{ steps.env.outputs.environment }}/kustomization.yaml
-          
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
@@ -315,7 +330,7 @@ jobs:
       - name: Create namespace and secrets
         run: |
           kubectl create namespace ${{ steps.env.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Create database secret if not exists
           kubectl get secret postgres-secret -n ${{ steps.env.outputs.namespace }} || \
           kubectl create secret generic postgres-secret \
@@ -326,24 +341,24 @@ jobs:
       - name: Deploy to GKE
         run: |
           cd k8s/overlays/${{ steps.env.outputs.environment }}
-          
+
           echo "🚀 Deploying to ${{ steps.env.outputs.environment }}..."
           kustomize build . | kubectl apply -f -
-          
+
           echo "✅ Deployed to ${{ steps.env.outputs.environment }}"
 
       - name: Wait for deployments
         run: |
           echo "⏳ Waiting for deployments to be ready..."
-          
+
           kubectl wait --for=condition=available --timeout=300s \
             deployment/config-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
             -n ${{ steps.env.outputs.namespace }} || true
-          
+
           kubectl wait --for=condition=available --timeout=300s \
             deployment/discovery-server-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
             -n ${{ steps.env.outputs.namespace }} || true
-          
+
           kubectl wait --for=condition=available --timeout=300s \
             deployment/gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
             -n ${{ steps.env.outputs.namespace }} || true
@@ -352,11 +367,11 @@ jobs:
         run: |
           echo "🌐 Service URLs:"
           kubectl get svc -n ${{ steps.env.outputs.namespace }}
-          
+
           GATEWAY_IP=$(kubectl get svc gateway-${{ steps.env.outputs.environment == 'production' && 'prod' || 'staging' }} \
             -n ${{ steps.env.outputs.namespace }} \
             -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
-          
+
           if [ "$GATEWAY_IP" != "pending" ]; then
             echo "✅ Gateway URL: http://${GATEWAY_IP}"
           else
@@ -382,7 +397,7 @@ jobs:
             echo "status=❌ Failed" >> $GITHUB_OUTPUT
             echo "color=danger" >> $GITHUB_OUTPUT
           fi
-          
+
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "env=Production" >> $GITHUB_OUTPUT
           else

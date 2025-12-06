@@ -44,7 +44,7 @@ images:
   newName: 23341/ecommerce-product
   newTag: prod-937e92a61894972dc652838db1aa161d918dddce
 - name: ecommerce-authentication
-  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-478907/ecommerce-repo/ecommerce-authentication
+  newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-authentication
   newTag: prod-latest
 - name: ecommerce-config
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-config
