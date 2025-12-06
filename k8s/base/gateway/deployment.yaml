@@ -17,7 +17,7 @@ spec:
         - name: artifact-registry-key
       containers:
         - name: gateway
-          image: cinnamoll/ecommerce-gateway:latest
+          image: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/gateway:latest
           ports:
             - containerPort: 8080
           env:
