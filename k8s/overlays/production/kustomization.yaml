@@ -45,22 +45,22 @@ images:
   newTag: prod-b24e20f25523c3b822db0d44f8b326e7a453252c
 - name: ecommerce-authentication
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-authentication
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-config
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-config
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-discovery-server
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-discovery-server
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-gateway
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-gateway
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-monitoring
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-monitoring
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-order
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-order
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
 - name: ecommerce-product
   newName: asia-southeast1-docker.pkg.dev/btl-ecommerce-prod-480407/ecommerce-repo/ecommerce-product
-  newTag: prod-b434db8
+  newTag: prod-b24e20f
